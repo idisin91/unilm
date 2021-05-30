@@ -77,7 +77,7 @@ class Funsd(datasets.GeneratorBasedBuilder):
                     "bboxes": datasets.Sequence(datasets.Sequence(datasets.Value("int64"))),
                     "ner_tags": datasets.Sequence(
                         datasets.features.ClassLabel(
-                            names=["O", "B-HEADER", "I-HEADER", "B-QUESTION", "I-QUESTION", "B-ANSWER", "I-ANSWER"]
+                            names=["O", "B-HEADER", "I-HEADER", "B-QUESTION", "I-QUESTION", "B-ANSWER", "I-ANSWER", "LINE"]
                         )
                     ),
                     "image": datasets.Array3D(shape=(3, 224, 224), dtype="uint8"),
@@ -123,7 +123,7 @@ class Funsd(datasets.GeneratorBasedBuilder):
                         if y0 == y1:
                                 y1 = y0+1
                         tokens.append("<LINE>")
-                        ner_tags.append("O")
+                        ner_tags.append("LINE")
                         bbox = [x0,y0,x1,y1]
                         bboxes.append(normalize_bbox(bbox, size))
 
