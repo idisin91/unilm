@@ -8,7 +8,7 @@ import torch
 
 from detectron2.data.detection_utils import read_image
 from detectron2.data.transforms import ResizeTransform, TransformList
-
+import pandas as pd
 
 logger = datasets.logging.get_logger(__name__)
 
@@ -28,6 +28,25 @@ _DESCRIPTION = """\
 https://guillaumejaume.github.io/FUNSD/
 """
 
+
+def get_line_annotations_for_path(path):
+    results = {}
+    with open(path, "r") as f:
+        df = pd.DataFrame(json.load(f))
+    for index, row in df.iterrows():
+        all_lines = []
+        if 'objects' in row['Label']:
+            for obj in row['Label']['objects']:
+                x0,y0 = obj['line'][0].values()
+                x1,y1 = obj['line'][1].values()
+                if x1 < x0:
+                    x0,y0,x1,y1 = x1,y1,x0,y0
+                all_lines.append((x0,y0,x1,y1))
+
+
+        filename = row['External ID']
+        results[filename] = all_lines
+    return results
 
 class FunsdConfig(datasets.BuilderConfig):
     """BuilderConfig for FUNSD"""
