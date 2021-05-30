@@ -80,7 +80,7 @@ class Funsd(datasets.GeneratorBasedBuilder):
                 name=datasets.Split.TEST, gen_kwargs={"filepath": f"/gdrive/MyDrive/FUNSD/testing_data/"}
             ),
         ]
-    def _generate_examples(filepath):
+    def _generate_examples(self, filepath):
         ann_dir = os.path.join(filepath, "adjusted_annotations")
         img_dir = os.path.join(filepath, "images")
         line_ann = f"{filepath}/lines.json"
