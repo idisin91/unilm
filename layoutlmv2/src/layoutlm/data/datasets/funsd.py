@@ -80,41 +80,55 @@ class Funsd(datasets.GeneratorBasedBuilder):
                 name=datasets.Split.TEST, gen_kwargs={"filepath": f"/gdrive/MyDrive/FUNSD/testing_data/"}
             ),
         ]
-    def _generate_examples(self, filepath):
-        logger.info("⏳ Generating examples from = %s", filepath)
-        ann_dir = os.path.join(filepath, "adjusted_annotations")
-        img_dir = os.path.join(filepath, "images")
-        for guid, file in enumerate(sorted(os.listdir(ann_dir))):
-            tokens = []
-            bboxes = []
-            ner_tags = []
+    def _generate_examples(filepath):
+    print("⏳ Generating examples from = %s", filepath)
+    ann_dir = os.path.join(filepath, "adjusted_annotations")
+    img_dir = os.path.join(filepath, "images")
+    line_ann = f"{filepath}/lines.json"
+    line_annotations = get_line_annotations_for_path(line_ann)
+    for guid, file in enumerate(sorted(os.listdir(ann_dir))):
+        tokens = []
+        bboxes = []
+        ner_tags = []
+        file_path = os.path.join(ann_dir, file)
+        basename = os.path.basename(file_path)
+        line_annotation_name = f"{basename[:-5]}.png" # .json -> .png
+        with open(file_path, "r", encoding="utf8") as f:
+            data = json.load(f)
+        image_path = os.path.join(img_dir, file)
+        image_path = image_path.replace("json", "png")
+        image, size = load_image(image_path)
+        for line in line_annotations[line_annotation_name]: # for every line annotation in path
+            x0,y0,x1,y1 = map(int, line)
+            if y0 > y1:
+                y0,y1 = y1,y0
+            if y0 == y1:
+                y1 = y0+1
+            tokens.append("<LINE>")
+            ner_tags.append("O")
+            bbox = [x0,y0,x1,y1]
+            bboxes.append(normalize_bbox(bbox, size))
+            
+        for item in data["form"]:
+            words, label = item["words"], item["label"]
+            words = [w for w in words if "text" in w and w["text"].strip() != ""] # some boxes may be empty after revision
+            if len(words) == 0:
+                continue
+            if label == "other":
+                for w in words:
+                    tokens.append(w["text"])
+                    ner_tags.append("O")
+                    bboxes.append(normalize_bbox(w["box"], size))
+            else:
+                tokens.append(words[0]["text"])
+                ner_tags.append("B-" + label.upper())
+                bboxes.append(normalize_bbox(words[0]["box"], size))
+                for w in words[1:]:
+                    tokens.append(w["text"])
+                    ner_tags.append("I-" + label.upper())
+                    bboxes.append(normalize_bbox(w["box"], size))
 
-            file_path = os.path.join(ann_dir, file)
-            with open(file_path, "r", encoding="utf8") as f:
-                data = json.load(f)
-            image_path = os.path.join(img_dir, file)
-            image_path = image_path.replace("json", "png")
-            image, size = load_image(image_path)
-            for item in data["form"]:
-                words, label = item["words"], item["label"]
-                words = [w for w in words if w["text"].strip() != ""]
-                if len(words) == 0:
-                    continue
-                if label == "other":
-                    for w in words:
-                        tokens.append(w["text"])
-                        ner_tags.append("O")
-                        bboxes.append(normalize_bbox(w["box"], size))
-                else:
-                    tokens.append(words[0]["text"])
-                    ner_tags.append("B-" + label.upper())
-                    bboxes.append(normalize_bbox(words[0]["box"], size))
-                    for w in words[1:]:
-                        tokens.append(w["text"])
-                        ner_tags.append("I-" + label.upper())
-                        bboxes.append(normalize_bbox(w["box"], size))
-
-            yield guid, {"id": str(guid), "tokens": tokens, "bboxes": bboxes, "ner_tags": ner_tags, "image": image}
+        yield guid, {"id": str(guid), "tokens": tokens, "bboxes": bboxes, "ner_tags": ner_tags, "image": image}
 
 
 def normalize_bbox(bbox, size):
