@@ -71,19 +71,18 @@ class Funsd(datasets.GeneratorBasedBuilder):
 
     def _split_generators(self, dl_manager):
         """Returns SplitGenerators."""
-        downloaded_file = dl_manager.download_and_extract("https://guillaumejaume.github.io/FUNSD/dataset.zip")
+        # downloaded_file = dl_manager.download_and_extract("https://guillaumejaume.github.io/FUNSD/dataset.zip")
         return [
             datasets.SplitGenerator(
-                name=datasets.Split.TRAIN, gen_kwargs={"filepath": f"{downloaded_file}/dataset/training_data/"}
+                name=datasets.Split.TRAIN, gen_kwargs={"filepath": f"/gdrive/MyDrive/FUNSD/training_data/"}
             ),
             datasets.SplitGenerator(
-                name=datasets.Split.TEST, gen_kwargs={"filepath": f"{downloaded_file}/dataset/testing_data/"}
+                name=datasets.Split.TEST, gen_kwargs={"filepath": f"/gdrive/MyDrive/FUNSD/testing_data/"}
             ),
         ]
-
     def _generate_examples(self, filepath):
         logger.info("⏳ Generating examples from = %s", filepath)
-        ann_dir = os.path.join(filepath, "annotations")
+        ann_dir = os.path.join(filepath, "adjusted_annotations")
         img_dir = os.path.join(filepath, "images")
         for guid, file in enumerate(sorted(os.listdir(ann_dir))):
             tokens = []
