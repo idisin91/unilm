@@ -136,11 +136,11 @@ class Funsd(datasets.GeneratorBasedBuilder):
                 tokens = []
                 bboxes = []
                 ner_tags = []
-                # file_path = os.path.join(ann_dir, file)
+                file_path = os.path.join(ann_dir, file)
                 # basename = os.path.basename(file_path)
                 # line_annotation_name = f"{basename[:-5]}.png" # .json -> .png
-                # with open(file_path, "r", encoding="utf8") as f:
-                #         data = json.load(f)
+                with open(file_path, "r", encoding="utf8") as f:
+                    data = json.load(f)
                 image_path = os.path.join(img_dir, file)
                 image_path = image_path.replace("json", "png")
                 image, size = load_image(image_path)
