@@ -105,7 +105,7 @@ class Funsd(datasets.GeneratorBasedBuilder):
                     "bboxes": datasets.Sequence(datasets.Sequence(datasets.Value("int64"))),
                     "ner_tags": datasets.Sequence(
                         datasets.features.ClassLabel(
-                            names=["O", "B-HEADER", "I-HEADER", "B-QUESTION", "I-QUESTION", "B-ANSWER", "I-ANSWER", "LINE"]
+                            names=["O", "B-HEADER", "I-HEADER", "B-QUESTION", "I-QUESTION", "B-ANSWER", "I-ANSWER"]
                         )
                     ),
                     "image": datasets.Array3D(shape=(3, 224, 224), dtype="uint8"),
@@ -130,30 +130,30 @@ class Funsd(datasets.GeneratorBasedBuilder):
     def _generate_examples(self, filepath):
         ann_dir = os.path.join(filepath, "adjusted_annotations")
         img_dir = os.path.join(filepath, "images")
-        line_ann = f"{filepath}/lines.json"
-        line_annotations = get_line_annotations_for_path(line_ann)
+        # line_ann = f"{filepath}/lines.json"
+        # line_annotations = get_line_annotations_for_path(line_ann)
         for guid, file in enumerate(sorted(os.listdir(ann_dir))):
                 tokens = []
                 bboxes = []
                 ner_tags = []
-                file_path = os.path.join(ann_dir, file)
-                basename = os.path.basename(file_path)
-                line_annotation_name = f"{basename[:-5]}.png" # .json -> .png
-                with open(file_path, "r", encoding="utf8") as f:
-                        data = json.load(f)
+                # file_path = os.path.join(ann_dir, file)
+                # basename = os.path.basename(file_path)
+                # line_annotation_name = f"{basename[:-5]}.png" # .json -> .png
+                # with open(file_path, "r", encoding="utf8") as f:
+                #         data = json.load(f)
                 image_path = os.path.join(img_dir, file)
                 image_path = image_path.replace("json", "png")
                 image, size = load_image(image_path)
-                for line in line_annotations[line_annotation_name]: # for every line annotation in path
-                        x0,y0,x1,y1 = map(int, line)
-                        if y0 > y1:
-                                y0,y1 = y1,y0
-                        if y0 == y1:
-                                y1 = y0+1
-                        tokens.append("<LINE>")
-                        ner_tags.append("LINE")
-                        bbox = [x0,y0,x1,y1]
-                        bboxes.append(normalize_bbox(bbox, size))
+                # for line in line_annotations[line_annotation_name]: # for every line annotation in path
+                #         x0,y0,x1,y1 = map(int, line)
+                #         if y0 > y1:
+                #                 y0,y1 = y1,y0
+                #         if y0 == y1:
+                #                 y1 = y0+1
+                #         tokens.append("<LINE>")
+                #         ner_tags.append("LINE")
+                #         bbox = [x0,y0,x1,y1]
+                #         bboxes.append(normalize_bbox(bbox, size))
 
                 for item in data["form"]:
                         words, label = item["words"], item["label"]
