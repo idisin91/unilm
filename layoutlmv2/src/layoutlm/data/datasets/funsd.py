@@ -29,6 +29,49 @@ https://guillaumejaume.github.io/FUNSD/
 """
 
 
+
+
+from functools import cmp_to_key
+from bbox import BBox2D, XYXY
+from bbox.metrics import jaccard_index_2d
+
+def compare_bboxes(el1, el2, special_line_order = True):
+    tok1, bbox1, _ = el1
+    tok2, bbox2, _ = el2
+    bbox1 = BBox2D(bbox1, XYXY)
+    bbox2 = BBox2D(bbox2, XYXY)
+    y1 = (bbox1.y2 + bbox1.y1)/2
+    y2 = (bbox2.y2 + bbox2.y1)/2
+    if jaccard_index_2d(bbox1, bbox2) > 0:
+        if tok1 == '<LINE>' and tok2 != "<LINE>" and special_line_order:
+            return 1 # line should be last if it intersects word bbox
+        if tok2 == "<LINE>" and tok1 != "<LINE>" and special_line_order:
+            return -1
+        return bbox2.x1-bbox1.x1
+        
+    if abs(y1-y2) > 13:
+        return y2-y1
+    else:
+        return bbox2.x1-bbox1.x1
+    
+def rearrange_data(*list_of_lists, key, reverse=True):
+    arranged_list = list(zip(*list_of_lists))
+    sorted_arranged_list = sorted(arranged_list, key=key, reverse=reverse)
+    return list(map(list, zip(*sorted_arranged_list)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def get_line_annotations_for_path(path):
     results = {}
     with open(path, "r") as f:
@@ -145,7 +188,8 @@ class Funsd(datasets.GeneratorBasedBuilder):
                                         tokens.append(w["text"])
                                         ner_tags.append("I-" + label.upper())
                                         bboxes.append(normalize_bbox(w["box"], size))
-
+                tokens, bboxes, ner_tags = rearrange_data(tokens, bboxes, ner_tags, key=cmp_to_key(compare_bboxes))
+                
                 yield guid, {"id": str(guid), "tokens": tokens, "bboxes": bboxes, "ner_tags": ner_tags, "image": image}
 
 
