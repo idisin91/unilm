@@ -35,7 +35,7 @@ from functools import cmp_to_key
 from bbox import BBox2D, XYXY
 from bbox.metrics import jaccard_index_2d
 
-def compare_bboxes(el1, el2, special_line_order = True):
+def compare_bboxes(el1, el2):
     tok1, bbox1, _ = el1
     tok2, bbox2, _ = el2
     bbox1 = BBox2D(bbox1, XYXY)
@@ -43,10 +43,6 @@ def compare_bboxes(el1, el2, special_line_order = True):
     y1 = (bbox1.y2 + bbox1.y1)/2
     y2 = (bbox2.y2 + bbox2.y1)/2
     if jaccard_index_2d(bbox1, bbox2) > 0:
-        if tok1 == '<LINE>' and tok2 != "<LINE>" and special_line_order:
-            return 1 # line should be last if it intersects word bbox
-        if tok2 == "<LINE>" and tok1 != "<LINE>" and special_line_order:
-            return -1
         return bbox2.x1-bbox1.x1
         
     if abs(y1-y2) > 13:
@@ -120,7 +116,7 @@ class Funsd(datasets.GeneratorBasedBuilder):
                     "bboxes": datasets.Sequence(datasets.Sequence(datasets.Value("int64"))),
                     "ner_tags": datasets.Sequence(
                         datasets.features.ClassLabel(
-                            names=["O", "B-HEADER", "I-HEADER", "B-QUESTION", "I-QUESTION", "B-ANSWER", "I-ANSWER", "LINE"]
+                            names=["O", "B-HEADER", "I-HEADER", "B-QUESTION", "I-QUESTION", "B-ANSWER", "I-ANSWER"]
                         )
                     ),
                     "image": datasets.Array3D(shape=(3, 224, 224), dtype="uint8"),
@@ -159,35 +155,35 @@ class Funsd(datasets.GeneratorBasedBuilder):
                 image_path = os.path.join(img_dir, file)
                 image_path = image_path.replace("json", "png")
                 image, size = load_image(image_path)
-                for line in line_annotations[line_annotation_name]: # for every line annotation in path
-                        x0,y0,x1,y1 = map(int, line)
-                        if y0 > y1:
-                                y0,y1 = y1,y0
-                        if y0 == y1:
-                                y1 = y0+1
-                        tokens.append("<LINE>")
-                        ner_tags.append("LINE")
-                        bbox = [x0,y0,x1,y1]
-                        bboxes.append(normalize_bbox(bbox, size))
+                # for line in line_annotations[line_annotation_name]: # for every line annotation in path
+                #         x0,y0,x1,y1 = map(int, line)
+                #         if y0 > y1:
+                #                 y0,y1 = y1,y0
+                #         if y0 == y1:
+                #                 y1 = y0+1
+                #         tokens.append("<LINE>")
+                #         ner_tags.append("LINE")
+                #         bbox = [x0,y0,x1,y1]
+                #         bboxes.append(normalize_bbox(bbox, size))
 
                 for item in data["form"]:
-                        words, label = item["words"], item["label"]
-                        words = [w for w in words if "text" in w and w["text"].strip() != ""] # some boxes may be empty after revision
-                        if len(words) == 0:
-                                continue
-                        if label == "other":
-                                for w in words:
-                                        tokens.append(w["text"])
-                                        ner_tags.append("O")
-                                        bboxes.append(normalize_bbox(w["box"], size))
-                        else:
-                                tokens.append(words[0]["text"])
-                                ner_tags.append("B-" + label.upper())
-                                bboxes.append(normalize_bbox(words[0]["box"], size))
-                                for w in words[1:]:
-                                        tokens.append(w["text"])
-                                        ner_tags.append("I-" + label.upper())
-                                        bboxes.append(normalize_bbox(w["box"], size))
+                    words, label = item["words"], item["label"]
+                    words = [w for w in words if "text" in w and w["text"].strip() != ""] # some boxes may be empty after revision
+                    if len(words) == 0:
+                        continue
+                    if label == "other":
+                        for w in words:
+                            tokens.append(w["text"])
+                            ner_tags.append("O")
+                            bboxes.append(normalize_bbox(w["box"], size))
+                    else:
+                        tokens.append(words[0]["text"])
+                        ner_tags.append("B-" + label.upper())
+                        bboxes.append(normalize_bbox(words[0]["box"], size))
+                        for w in words[1:]:
+                            tokens.append(w["text"])
+                            ner_tags.append("I-" + label.upper())
+                            bboxes.append(normalize_bbox(w["box"], size))
                 tokens, bboxes, ner_tags = rearrange_data(tokens, bboxes, ner_tags, key=cmp_to_key(compare_bboxes))
                 
                 yield guid, {"id": str(guid), "tokens": tokens, "bboxes": bboxes, "ner_tags": ner_tags, "image": image}
